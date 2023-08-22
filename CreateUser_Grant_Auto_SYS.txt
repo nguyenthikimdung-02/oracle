@@ -1,0 +1,194 @@
+create or replace 
+trigger BEFORE_INSERT_NV
+before insert on USER1.NHANVIEN
+  for each row
+  DECLARE
+   counter NUMBER := 1;
+   max_counter NUMBER;
+   v_chudau VARCHAR(5);
+   v_Username VARCHAR(100);
+   v_Count INT;
+   PRAGMA AUTONOMOUS_TRANSACTION; 
+  begin
+    -- T?o tên đăng nh?p theo quy đ?nh
+    --lay ten cuoi: vi du lan
+    SELECT LOWER(word) into v_Username
+    FROM (
+        SELECT REGEXP_SUBSTR(:NEW.TENNV, '[^ ]+', 1, LEVEL) AS word
+        FROM DUAL
+        CONNECT BY REGEXP_SUBSTR(:NEW.TENNV, '[^ ]+', 1, LEVEL) IS NOT NULL
+        )
+    ORDER BY ROWNUM DESC
+    FETCH FIRST ROW ONLY;
+    
+    --dem so dong ma cac phan tu trong ho ten da bi tach ra
+    SELECT COUNT(*) INTO max_counter
+    FROM (
+        SELECT SUBSTR(word, 1, 1) AS first_letter
+        FROM (
+          SELECT REGEXP_SUBSTR(:NEW.TENNV, '[^ ]+', 1, LEVEL) AS word
+          FROM DUAL
+          CONNECT BY REGEXP_SUBSTR(:NEW.TENNV, '[^ ]+', 1, LEVEL) IS NOT NULL
+        )
+      );
+    
+    --lay ki tu dau cau cua ho va ten
+    FOR i IN (
+        SELECT SUBSTR(word, 1,1) AS first_letter
+        FROM (
+            SELECT REGEXP_SUBSTR(:NEW.TENNV, '[^ ]+', 1, LEVEL) AS word
+            FROM DUAL
+            CONNECT BY REGEXP_SUBSTR(:NEW.TENNV, '[^ ]+', 1, LEVEL) IS NOT NULL
+        )
+    ) LOOP
+        IF counter != max_counter THEN
+          v_chudau := LOWER(v_chudau || i.first_letter);
+        END IF;
+        counter := counter + 1;
+        
+    END LOOP;
+    
+    --noi chuoi thanh lannt
+    v_Username := v_Username || v_chudau;
+    
+    -- Ki?m tra xem tên đăng nh?p đ? t?n t?i hay chưa: tim chuoi con
+    SELECT COUNT(*) INTO v_Count FROM USER1.TAIKHOAN WHERE INSTR(LOWER(USER1.TAIKHOAN.TENID), v_Username) > 0;
+    
+    -- N?u tên đăng nh?p đ? t?n t?i, thêm s? th? t? vào cu?i tên đăng nh?p
+    IF v_Count > 0 THEN
+      v_Username := v_Username || v_Count;
+    END IF;
+     
+    insert into USER1.TAIKHOAN(TENID, PASS) values(v_Username,'123');
+    -- Gán tên đăng nh?p vào trư?ng Username
+    :NEW.TENID := v_Username;
+    "INSERT_User"(:NEW.TENID,'123');
+    commit;
+  end;
+  
+  
+SELECT * FROM USER_TRIGGERS;
+  
+  
+  SELECT LOWER(word)
+FROM (
+    SELECT REGEXP_SUBSTR('Hello World', '[^ ]+', 1, LEVEL) AS word
+    FROM DUAL
+    CONNECT BY REGEXP_SUBSTR('Hello World', '[^ ]+', 1, LEVEL) IS NOT NULL
+    )
+ORDER BY ROWNUM DESC
+FETCH FIRST ROW ONLY;
+
+  
+  
+SELECT SUBSTR(word, 1,1) 
+FROM (
+    SELECT REGEXP_SUBSTR('Hello World', '[^ ]+', 1, LEVEL) AS word
+    FROM DUAL
+    CONNECT BY REGEXP_SUBSTR('Hello World', '[^ ]+', 1, LEVEL) IS NOT NULL
+);
+
+BEGIN
+    FOR i IN (
+        SELECT SUBSTR(word, 1,1) AS first_letter
+        FROM (
+            SELECT REGEXP_SUBSTR('Hello World b b b', '[^ ]+', 1, LEVEL) AS word
+            FROM DUAL
+            CONNECT BY REGEXP_SUBSTR('Hello World b b b', '[^ ]+', 1, LEVEL) IS NOT NULL
+        )
+        
+    ) LOOP
+        
+        DBMS_OUTPUT.PUT_LINE(i.first_letter);
+    END LOOP;
+END;
+
+
+BEGIN
+    FOR i IN (
+        SELECT SUBSTR(word, 1,1) AS first_letter,
+               LEAD(SUBSTR(word, 1,1)) OVER (ORDER BY word) AS next_letter
+        FROM (
+            SELECT REGEXP_SUBSTR('Hello World b b b', '[^ ]+', 1, LEVEL) AS word
+            FROM DUAL
+            CONNECT BY REGEXP_SUBSTR('Hello World b b b', '[^ ]+', 1, LEVEL) IS NOT NULL
+        )
+    ) LOOP
+        
+        DBMS_OUTPUT.PUT_LINE(i.first_letter || ' ' || i.next_letter);
+    END LOOP;
+END;
+
+SET SERVEROUTPUT ON 
+
+
+  
+create or replace procedure "INSERT_User"   
+    (tentk IN VARCHAR2, passtk IN VARCHAR2)    
+is   
+begin   
+      EXECUTE IMMEDIATE 'CREATE USER ' || tentk || ' IDENTIFIED BY ' || passtk; 
+      EXECUTE IMMEDIATE 'GRANT CREATE SESSION TO ' ||tentk; 
+end;
+
+
+    SELECT COUNT(*) FROM USER1.TAIKHOAN WHERE INSTR(LOWER(USER1.TAIKHOAN.TENID), 'yntny') > 0;
+
+  select * from dba_users
+  select * from USER1.NHANVIEN
+  select * from USER1.TAIKHOAN
+  select * from USER1.TAIKHOAN_AUDIT
+  delete from USER1.NHANVIEN
+  delete from USER1.TAIKHOAN
+  delete from USER1.TAIKHOAN_AUDIT
+  
+  select * from USER1.GIAY
+
+drop user tiennt2
+
+  Insert into USER1.NHANVIEN (MANV,TENNV,NGAYSINH,GIOITINH,DIACHI,LUONG) values ('NV01','Nguyen Thi Lan','11-10-97','Nu','Quan Tan Phu',2000000);
+Insert into USER1.NHANVIEN (MANV,TENNV,NGAYSINH,GIOITINH,DIACHI,LUONG) values ('NV02','Nguyen Nhu Ngoc','11-10-97','Nu','Quan Tan Phu',7000000);
+Insert into USER1.NHANVIEN (MANV,TENNV,NGAYSINH,GIOITINH,DIACHI,LUONG) values ('NV03','Nguyen Thi Lan','11-10-97','Nu','Quan Tan Phu',7000000);
+
+
+
+--session, user dang block du lieu
+
+
+--cau lenh de session block du lieu
+ALTER SYSTEM ENABLE RESTRICTED SESSION;
+ALTER SYSTEM disable RESTRICTED SESSION
+
+
+
+--session, user dang block du lieu???
+SELECT s.sid, s.serial#, p.spid, s.username, s.program, s.status
+FROM v$session s JOIN v$process p ON s.paddr = p.addr
+WHERE s.blocking_session_status IS NOT NULL;
+
+SELECT blocking_session,sid,serial#,wait_class,seconds_in_wait FROM v$session WHERE blocking_session IS NOT NULL;
+
+
+
+--xem session dang cho lock
+SELECT sid, serial#, username, osuser, machine, program, status
+FROM v$session
+WHERE blocking_session IS NOT NULL;
+
+
+
+BEGIN
+  FOR cur_rec IN (SELECT username FROM dba_users WHERE username LIKE 'YLTN%')
+  LOOP
+    EXECUTE IMMEDIATE ('DROP USER ' || cur_rec.username || ' CASCADE');
+  END LOOP;
+END;
+
+
+select * from DBA_SYS_PRIVS where grantee like 'DBA';	
+
+Insert into USER1.GIAY (MAGIAY,TENGIAY,GIABAN,SLTON,MANSX,HINHANH) values ('MG13','Giay The Thao 3',585000,45,'NSX01','C:\Users\HP\OneDrive\Máy tính\QL_BANGIAY\HinhAnh\hinhanh01.jpg');
+commit;
+
+
+
